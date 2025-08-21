@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # Main Application
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - DATABASE_URL=postgresql://credtech:password123@db:5432/credtech_db
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=your-secret-key-here
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - credtech-network
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=credtech_db
+      - POSTGRES_USER=credtech
+      - POSTGRES_PASSWORD=password123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    networks:
+      - credtech-network
+
+  # Redis for Caching and Task Queue
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - credtech-network
+
+  # Celery Worker for Background Tasks
+  worker:
+    build: .
+    command: celery -A src.tasks worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://credtech:password123@db:5432/credtech_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
