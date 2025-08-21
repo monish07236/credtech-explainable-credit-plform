@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corporate Credit Monitor - Real-Time Intelligence</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #6366f1;
+            --background-dark: #1f2937;
+            --background-light: #f3f4f6;
+            --card-background: #ffffff;
+            --text-dark: #111827;
+            --text-light: #4b5563;
+            --positive-color: #22c55e;
+            --negative-color: #ef4444;
+            --neutral-color: #9ca3af;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-light);
+            min-height: 100vh;
+            color: var(--text-dark);
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1rem;
+            opacity: 0.8;
+            margin-top: 0.5rem;
+        }
+
+        .card {
+            background-color: var(--card-background);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--background-light);
+            padding-bottom: 0.5rem;
+        }
+
+        .score-panel {
+            text-align: center;
+        }
+
+        #currentScore {
+            font-size: 4rem;
+            font-weight: 700;
+            line-height: 1;
+            margin: 1rem 0;
+            color: var(--primary-color);
+        }
+
+        #scoreChange {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .positive { color: var(--positive-color); }
+        .negative { color: var(--negative-color); }
+
+        .score-info {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-top: 0.5rem;
+        }
+
+        .select-container {
+            margin-bottom: 1.5rem;
+        }
+
+        #issuerSelect {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--neutral-color);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .score-drivers {
+            margin-top: 1.5rem;
+        }
+
+        .driver-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--background-light);
+        }
+
+        .driver-item:last-child {
+            border-bottom: none;
+        }
+
+        .driver-item span {
+            font-weight: 500;
+        }
+
+        .positive-driver { color: var(--positive-color); }
+        .negative-driver { color: var(--negative-color); }
+        .neutral-driver { color: var(--neutral-color); }
+
+        .timeline {
+            margin-top: 2rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .timeline-item {
+            padding: 1rem;
+            border-left: 3px solid var(--neutral-color);
+            margin-left: 1rem;
+            position: relative;
+        }
+        
+        .timeline-item:before {
+            content: '';
+            width: 12px;
+            height: 12px;
+            background-color: var(--neutral-color);
+            border-radius: 50%;
+            position: absolute;
+            left: -8px;
+            top: 1.5rem;
+        }
+
+        .timeline-item.positive-event:before { background-color: var(--positive-color); }
+        .timeline-item.negative-event:before { background-color: var(--negative-color); }
+
+        .event-title {
+            font-weight: 600;
+        }
+
+        .event-date {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            margin-bottom: 0.5rem;
+        }
+
+        .data-source-health {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .source-status {
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .dot-green { background-color: var(--positive-color); }
+        .dot-yellow { background-color: #facc15; }
+        .dot-red { background-color: var(--negative-color); }
+
+        /* Ensure chart is visible */
+        #scoreChart { min-height: 300px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>Corporate Credit Monitor</h1>
+            <p>Real-Time, Explainable Credit Intelligence</p>
+        </div>
+
+        <div class="card">
+            <div class="select-container">
+                <select id="issuerSelect">
+                    <option value="AAPL">Apple Inc. (AAPL)</option>
+                    <option value="MSFT">Microsoft Corp. (MSFT)</option>
+                    <option value="AMZN">Amazon.com Inc. (AMZN)</option>
+                    <option value="GOOGL">Alphabet Inc. (GOOGL)</option>
+                    <option value="TSLA">Tesla Inc. (TSLA)</option>
+                </select>
+            </div>
+            
+            <div class="score-panel">
+                <div class="card-title">Credit Score</div>
+                <div id="currentScore">--</div>
+                <div id="scoreChange" class="neutral">--</div>
+                <div class="score-info">Percentile Rank: <span id="percentile">--</span></div>
+            </div>
+
+            <div class="score-drivers">
+                <div class="card-title">Score Drivers</div>
+                <div id="driverList"></div>
+            </div>
+            
+            <div class="data-source-health" id="sourceHealth"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Score Trend & Events</div>
+            <canvas id="scoreChart"></canvas>
+            
+            <div class="timeline" id="eventTimeline"></div>
+        </div>
+    </div>
+
+    <script>
+        let scoreChart;
+
+        function getCssVar(name) {
+            return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        }
+
+        function initializeChart(initialData) {
+            const ctx = document.getElementById('scoreChart').getContext('2d');
+            const primary = getCssVar('--primary-color') || '#4f46e5';
+            scoreChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['7d ago', '6d ago', '5d ago', '4d ago', '3d ago', '2d ago', 'Today'],
+                    datasets: [{
+                        label: 'Credit Score',
+                        data: initialData || [80, 81, 82, 83, 84, 85, 86],
+                        borderColor: primary,
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: false, min: 60, max: 100 }
+                    }
+                }
+            });
+        }
+
+        async function fetchScore(ticker) {
+            const res = await fetch(`/api/score/${ticker}`);
+            if (!res.ok) throw new Error('Failed to fetch score');
+            return res.json();
+        }
+
+        async function fetchTimeline(ticker) {
+            const res = await fetch(`/api/timeline/${ticker}`);
+            if (!res.ok) throw new Error('Failed to fetch timeline');
+            return res.json();
+        }
+
+        function renderScore(data) {
+            document.getElementById('currentScore').textContent = data.score;
+            const changeEl = document.getElementById('scoreChange');
+            changeEl.textContent = `${data.change > 0 ? '↑' : (data.change < 0 ? '↓' : '→')} ${Math.abs(data.change)}% (24h)`;
+            changeEl.className = data.change > 0 ? 'positive' : (data.change < 0 ? 'negative' : 'neutral');
+            document.getElementById('percentile').textContent = `${data.percentile}th`;
+
+            // Drivers
+            const driverListEl = document.getElementById('driverList');
+            driverListEl.innerHTML = '';
+            data.drivers.forEach(driver => {
+                const impactClass = driver.impact === 'positive' ? 'positive-driver' : (driver.impact === 'negative' ? 'negative-driver' : 'neutral-driver');
+                const row = document.createElement('div');
+                row.className = 'driver-item';
+                row.innerHTML = `<span>${driver.impact === 'positive' ? 'Positive' : (driver.impact === 'negative' ? 'Negative' : 'Neutral')}: ${driver.name}</span>
+                                 <span class="${impactClass}">${driver.value}</span>`;
+                driverListEl.appendChild(row);
+            });
+
+            // Source health
+            const sourceEl = document.getElementById('sourceHealth');
+            sourceEl.innerHTML = '';
+            Object.entries(data.source_health || {}).forEach(([name, status]) => {
+                const dotClass = status === 'green' ? 'dot-green' : status === 'yellow' ? 'dot-yellow' : 'dot-red';
+                const item = document.createElement('div');
+                item.className = 'source-status';
+                item.innerHTML = `<span class="status-dot ${dotClass}"></span> ${name}`;
+                sourceEl.appendChild(item);
+            });
+        }
+
+        function renderTimeline(data) {
+            const eventTimelineEl = document.getElementById('eventTimeline');
+            eventTimelineEl.innerHTML = '';
+            (data.events || []).forEach(event => {
+                const item = document.createElement('div');
+                item.className = `timeline-item ${event.impact}-event`;
+                item.innerHTML = `<div class="event-title">${event.title}</div>
+                                  <div class="event-date">${event.date}</div>
+                                  <p>${event.description}</p>`;
+                eventTimelineEl.appendChild(item);
+            });
+        }
+
+        async function updateDashboard(ticker) {
+            const [scoreData, timelineData] = await Promise.all([
+                fetchScore(ticker),
+                fetchTimeline(ticker)
+            ]);
+            renderScore(scoreData);
+            renderTimeline(timelineData);
+            if (scoreChart) {
+                // For demo, synthesize simple chart data around score
+                const base = scoreData.score;
+                const series = [base-3, base-2, base-1, base, base+1, base+2, base+3].map(v => Math.max(60, Math.min(100, v)));
+                scoreChart.data.datasets[0].data = series;
+                scoreChart.update();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            initializeChart();
+            const initial = 'AAPL';
+            await updateDashboard(initial);
+            document.getElementById('issuerSelect').addEventListener('change', async function(e) {
+                await updateDashboard(e.target.value);
+            });
+        });
+    </script>
+</body>
+</html>
+
